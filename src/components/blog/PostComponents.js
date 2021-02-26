@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import AnimateHeight from "react-animate-height";
 import { useStaticQuery, graphql } from "gatsby";
+import { CreateID } from "../SimpleFunctions.js";
 
-export const BButton = ({ link, ctitle }) => {
+export const BButton = ({ link, title }) => {
   return (
     <div className="su-button-center">
       <a href={link} className="su-button" target="_blank" rel="noreferrer nofollow">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
           <path fill="currentColor" d="M256 8c137 0 248 111 248 248S393 504 256 504 8 393 8 256 119 8 256 8zm113.9 231L234.4 103.5c-9.4-9.4-24.6-9.4-33.9 0l-17 17c-9.4 9.4-9.4 24.6 0 33.9L285.1 256 183.5 357.6c-9.4 9.4-9.4 24.6 0 33.9l17 17c9.4 9.4 24.6 9.4 33.9 0L369.9 273c9.4-9.4 9.4-24.6 0-34z"></path>
         </svg>
-        <span>{ctitle || "View on Amazon"}</span>
+        <span>{title || "View on Amazon"}</span>
       </a>
     </div>
   );
@@ -81,10 +82,7 @@ export const SpecTable = ({ spec }) => {
 
 export const PTitle = ({ title, beforeTitle, afterTitle, link, hlevel, cName = "box_title", cEnable, disableTitle }) => {
   const Heading = `h${hlevel || "2"}`;
-  const id = title
-    .replace(/[^\w ]/, "")
-    .split(" ")
-    .join("_");
+  const id = CreateID(title);
 
   return (
     <Heading id={id} className={cEnable !== false ? `${cName}` : ""}>
@@ -120,7 +118,7 @@ export const PImage = ({ alt, src, link }) => {
           </picture>
         </Anchor>
       </figure>
-      {link && <BButton link={link} ctitle="Check Price" />}
+      {link && <BButton link={link} title="Check Price" />}
     </div>
   );
 };
@@ -175,34 +173,41 @@ export const TableOfContents = ({ data }) => {
   );
 };
 
-export const ProductsTable = ({ products }) => {
+export const ProductsTable = ({ products, title, productColumns }) => {
   return (
     <table className="tablepress table_s1">
       <thead>
         <tr className="row-1 odd">
-          <th className="column-1">Moedel</th>
-          <th className="column-2">&nbsp;</th>
+          {title && <th className="tb-column">{title}</th>}
+          <th className="tb-column">Model</th>
+          {productColumns?.map((item, index) => (
+            <th key={index} className="tb-column">
+              {item}
+            </th>
+          ))}
+          <th className="tb-column">&nbsp;</th>
         </tr>
       </thead>
       <tbody className="row-hover">
         {products?.map((item, index) => (
           <tr key={index}>
-            <td className="column-1">
+            {title && (
+              <td className="tb-column">
+                <strong>{item.seoName}</strong>
+              </td>
+            )}
+            <td className="tb-column">
               <div className="item-detail">
-                <div>
-                  <TImage alt={item.name} src={item.image.base} />
-                </div>
-                <a
-                  href={item.name
-                    .replace(/[^\w ]/, "")
-                    .split(" ")
-                    .join("_")}
-                >
-                  {item.name}
-                </a>
+                <div>{item.image && <TImage alt={item.name} src={item.image.base} />}</div>
+                <a href={`#${CreateID(item.name)}`}>{item.name}</a>
               </div>
             </td>
-            <td className="column-2">
+            {productColumns?.map((column, index) => (
+              <td key={index} className="tb-column">
+                {item.specs.find((spec) => spec.name === column)?.value}
+              </td>
+            ))}
+            <td className="tb-column">
               <a href={item.link} className="su-button" target="_blank" rel="nofollow noreferrer">
                 <span> Check Price</span>
               </a>
@@ -211,6 +216,19 @@ export const ProductsTable = ({ products }) => {
         ))}
       </tbody>
     </table>
+  );
+};
+
+export const FeaturesBox = ({ title, features }) => {
+  return (
+    <div className="features_box">
+      <h3>{title}</h3>
+      <ul>
+        {features.map((item, index) => (
+          <li key={index} dangerouslySetInnerHTML={{ __html: item }}></li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

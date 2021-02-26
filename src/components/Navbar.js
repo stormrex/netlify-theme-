@@ -1,77 +1,82 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "gatsby";
-import useSiteMetaData from "./SiteMetadata.js";
-import ArrowDown from "../svg-icons/arrow-down.js";
-import { BuyingGuides } from "./fragments/NavChilds.js";
-import AnimateHeight from "react-animate-height";
+import SiteMetaData from "./SiteMetadata.js";
+import { ArrowDown } from "./SVG.js";
+import { LinkFix } from "./SimpleFunctions";
 
 const Navbar = () => {
   const [navBarActiveClass, setNavBarActiveClass] = useState("");
   const [navBarChildActiveClass, setNavBarChildActiveClass] = useState("");
-  const { title } = useSiteMetaData();
+  const { title: siteName, logoSmall, topNav } = SiteMetaData();
+  const img = logoSmall?.base;
+  const imgWidth = logoSmall.childImageSharp?.original?.width;
+  const imgHeight = logoSmall.childImageSharp?.original?.height;
+  const menu = useRef();
 
   const toggleHamburger = () => {
     navBarActiveClass ? setNavBarActiveClass("") : setNavBarActiveClass("is-active");
   };
 
-  const toggleChild = () => {
+  const toggleChild = (e) => {
+    e.target.classList.toggle("open");
     window.innerWidth < 1024 && (navBarChildActiveClass ? setNavBarChildActiveClass("") : setNavBarChildActiveClass("active"));
   };
-
-  const AddChilds = ({ data }) =>
-    data.map((item, index) => (
-      <div className="child-sec" key={index}>
-        <p>{item.title}</p>
-        {item.data.map((item, index) => (
-          <li key={index}>
-            <Link to={`/${item.path}/`}>{item.title}</Link>
-          </li>
-        ))}
-      </div>
-    ));
 
   return (
     <nav className="navbar is-transparent" role="navigation" aria-label="main-navigation">
       <div className="container">
         <div className="navbar-brand">
-          <Link to="/" className="logo-container" title={title}>
-            <img src="/useful-img/logo.png" alt={title} loading="lazy" width="187" height="60" />
+          <Link to="/" className="logo-container" title={siteName}>
+            <img src={`/img/${img}`} alt={siteName} loading="lazy" width={imgWidth} height={imgHeight} />
           </Link>
-          {/* Hamburger menu */}
+          {/* eslint-disable */}
           <div className={`navbar-burger burger ${navBarActiveClass}`} data-target="navMenu" onClick={() => toggleHamburger()}>
             <span />
             <span />
             <span />
           </div>
+          {/* eslint-enable */}
         </div>
-        <AnimateHeight id="navMenu" height={navBarActiveClass ? "auto" : 0} className="navbar-menu">
-          <div className="navbar-end has-text-centered">
-            <Link className="navbar-item" to="/learning-guides/">
-              Learning Guides
-            </Link>
-            <span className={`navbar-item nav-parent ${navBarChildActiveClass}`}>
-              <div className="parent-data">
-                <Link className="navbar-item" to="/buying-guides/">
-                  Buying Guides
+        <div id="navMenu" className={`navbar-menu ${navBarActiveClass}`} style={{ height: navBarActiveClass ? menu.current.clientHeight + 10 : 0 }}>
+          <div className="navbar-end has-text-centered" ref={menu}>
+            {topNav?.map((item, index) => (
+              <div key={index} className={`navbar-item ${item.child?.length ? (item.child?.find((_item) => _item.child?.length)?.child?.length ? "navbar-parent-two" : "navbar-parent-one") : ""}`}>
+                <Link className="navbar-item-link" to={LinkFix(item)}>
+                  {item.title}
                 </Link>
-                <span className="open-parent" onClick={() => toggleChild()}>
-                  <ArrowDown />
-                </span>
+                {!!item.child?.length && (
+                  <>
+                    {/* eslint-disable */}
+                    <div className="open-parent" onClick={(e) => toggleChild(e)}>
+                      <ArrowDown />
+                    </div>
+                    {/* eslint-enable */}
+                    <nav className="nav-child-first">
+                      {item.child.map((item, index) => (
+                        <div key={index} className="navbar-item">
+                          <Link className="navbar-item-link" to={LinkFix(item)}>
+                            {item.title}
+                          </Link>
+                          {!!item.child?.length && (
+                            <nav className="nav-child-second">
+                              {item.child.map((item, index) => (
+                                <div key={index} className="navbar-item">
+                                  <Link className="navbar-item-link" to={LinkFix(item)}>
+                                    {item.title}
+                                  </Link>
+                                </div>
+                              ))}
+                            </nav>
+                          )}
+                        </div>
+                      ))}
+                    </nav>
+                  </>
+                )}
               </div>
-              <AnimateHeight className="nav-child-container" height={navBarChildActiveClass ? "auto" : 0}>
-                <nav className="nav-child">
-                  <AddChilds data={BuyingGuides()} />
-                </nav>
-              </AnimateHeight>
-            </span>
-            <Link className="navbar-item" to="/news/">
-              News
-            </Link>
-            <Link className="navbar-item" to="/reviews/">
-              Reviews
-            </Link>
+            ))}
           </div>
-        </AnimateHeight>
+        </div>
       </div>
     </nav>
   );

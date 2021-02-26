@@ -2,22 +2,35 @@ import React from "react";
 import PropTypes from "prop-types";
 import { graphql, Link } from "gatsby";
 import Layout from "../components/Layout";
-import Content, { HTMLContent } from "../components/Content";
 import HeadData from "../components/HeadData.js";
+import SiteMetaData from "../components/SiteMetadata.js";
+import { FindCategory, FillSpace } from "../components/SimpleFunctions.js";
 
 const AuthorPage = (props) => {
+  const { title: siteName } = SiteMetaData();
   const { data } = props;
-  const PageContent = HTMLContent || Content;
   const { markdownRemark: post } = data;
-  const { title, seoTitle, seoDescription } = post.frontmatter;
+  const { title, description, seoTitle, seoDescription } = post.frontmatter;
+  const { base: img } = post.frontmatter.image;
+  const { width, height } = post.frontmatter.image.childImageSharp.original;
 
   return (
-    <Layout title={title}>
-      <HeadData title={seoTitle} description={seoDescription} />
+    <Layout>
+      <HeadData title={`${seoTitle} - ${siteName}`} description={seoDescription} slug={post.fields.slug} />
       <section className="section author-page">
         <div className="container">
           <div className="author-top">
-            <PageContent className="content" content={post.html} />
+            <div className="content">
+              <div className="author">
+                <p>
+                  <img src={`/img/${img}`} alt={title} loading="lazy" width={width} height={height} />
+                </p>
+                <div className="author_desc">
+                  <h1 className="author_title">{title}</h1>
+                  <p>{description}</p>
+                </div>
+              </div>
+            </div>
           </div>
           <AuthorPosts {...props} posts={data.allMdx.edges} />
         </div>
@@ -35,8 +48,8 @@ const AuthorPosts = (props) => {
   const { currentPage, numPages } = props.pageContext;
   const isFirst = currentPage === 1;
   const isLast = currentPage === numPages;
-  const prevPage = currentPage - 1 === 1 ? `${props.pageContext.slug}/` : `${props.pageContext.slug}/page/${currentPage - 1}/`;
-  const nextPage = `${props.pageContext.slug}/page/${currentPage + 1}/`;
+  const prevPage = currentPage - 1 === 1 ? `${props.pageContext.slug}/` : `${props.pageContext.slug}/${currentPage - 1}/`;
+  const nextPage = `${props.pageContext.slug}/${currentPage + 1}/`;
 
   return (
     <div className="latest-posts">
@@ -45,11 +58,12 @@ const AuthorPosts = (props) => {
         <div className="category-columns">
           {posts &&
             posts.map(({ node: post }) => {
-              const { cat: category, title, date } = post.frontmatter;
+              const { category, title, date } = post.frontmatter;
               const { name: imgName, base: img } = post.frontmatter.featuredimage;
               const { width, height } = post.frontmatter.featuredimage.childImageSharp.original;
               const slug = post.fields.slug;
               const id = post.id;
+              const { categoryName, categoryLink } = FindCategory(category);
 
               return (
                 <div className="category-column" key={id}>
@@ -68,12 +82,18 @@ const AuthorPosts = (props) => {
                       <Link to={`${slug}/`}>{title}</Link>
                     </div>
                     <div className="category_box_info">
-                      <Link to={`/${category.toLowerCase().split(" ").join("-")}/`}>{category}</Link> | {date}
+                      {categoryName && (
+                        <>
+                          <Link to={`${categoryLink}/`}>{categoryName}</Link> |{" "}
+                        </>
+                      )}
+                      {date}
                     </div>
                   </div>
                 </div>
               );
             })}
+          {FillSpace(posts.length, "category-column")}
         </div>
       </div>
       <div className="pagination">
@@ -99,16 +119,28 @@ const AuthorPosts = (props) => {
 export default AuthorPage;
 
 export const authorPageQuery = graphql`
-  query AuthorPageByID($id: String!, $cat: String!, $skip: Int!, $limit: Int!) {
+  query AuthorPageByID($id: String!, $author: String!, $skip: Int!, $limit: Int!) {
     markdownRemark(id: { eq: $id }) {
-      html
+      fields {
+        slug
+      }
       frontmatter {
         title
         seoTitle
         seoDescription
+        description
+        image {
+          base
+          childImageSharp {
+            original {
+              height
+              width
+            }
+          }
+        }
       }
     }
-    allMdx(sort: { order: DESC, fields: [frontmatter___date] }, filter: { frontmatter: { writer: { eq: $cat } } }, limit: $limit, skip: $skip) {
+    allMdx(sort: { order: DESC, fields: [frontmatter___date] }, filter: { frontmatter: { author: { eq: $author } } }, limit: $limit, skip: $skip) {
       edges {
         node {
           id
@@ -117,8 +149,8 @@ export const authorPageQuery = graphql`
           }
           frontmatter {
             title
-            cat
-            date(formatString: "MMMM DD, YYYY")
+            category
+            date(fromNow: true)
             featuredimage {
               name
               base

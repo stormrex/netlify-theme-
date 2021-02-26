@@ -1,33 +1,37 @@
 import React, { useState } from "react";
+import { CreateID } from "../SimpleFunctions.js";
+import { Sidebar } from "../SVG.js";
 
-const SidebarTableofContents = ({ data }) => {
+const SidebarTableofContents = ({ data, ad }) => {
   const [bSidebar, setBSidebar] = useState("");
-  const sideShow = data && data.stoc && data.image && data.stoc.length !== 0 ? true : false;
-  const { stoc: sToC, alink: sLink, atext: sText, stitle: sTitle2 } = sideShow && data;
-  const { base: sImg, name: sImgName } = sideShow && data.image;
-  const { width, height } = sideShow && data.image.childImageSharp.original;
+  const sidebarToC = data?.stoc;
+  const sidebarImage = data?.image;
+  const sidebarShow = sidebarToC?.length || (sidebarImage && data?.atext) ? true : false;
+  const { alink: sLink, atext: sText, stitle: sTitle } = data;
+  const Img = sidebarImage?.base;
+  const ImgName = sidebarImage?.name;
+  const imgWidth = sidebarImage?.childImageSharp?.original?.width;
+  const imgHeight = sidebarImage?.childImageSharp?.original?.height;
+  const LinkTag = (sLink && "a") || React.Fragment;
 
   const openSidebar = () => {
     bSidebar ? setBSidebar("") : setBSidebar("active");
   };
 
   return (
-    sideShow && (
-      <>
+    <>
+      {sidebarShow && (
         <button className={`sidebar-btn ${bSidebar}`} onClick={() => openSidebar()}>
-          <span></span>
-          <span></span>
-          <span></span>
+          <Sidebar />
         </button>
-        <div id="toc-sidebar" className="toc-sidebar" role="navigation">
+      )}
+      <div id="toc-sidebar" className="toc-sidebar" role="navigation">
+        {sidebarShow && !!sidebarToC?.length && (
           <div className="toc-top">
             <p className="toctitle">Table of Contents</p>
             <ul>
-              {sToC.map((item, index) => {
-                const id = `#${item.name
-                  .replace(/[^\w ]/, "")
-                  .split(" ")
-                  .join("_")}`;
+              {sidebarToC.map((item, index) => {
+                const id = `#${CreateID(item.name)}`;
                 const { name, level } = item;
 
                 return (
@@ -40,19 +44,24 @@ const SidebarTableofContents = ({ data }) => {
               })}
             </ul>
           </div>
+        )}
+        {sidebarShow && sidebarImage && (
           <div className="toc-bottom">
-            <p className="toc-bottom-heading">{sTitle2}</p>
-            <a href={sLink} rel="nofollow noopener noreferrer" target="_blank">
-              <picture>
-                <source srcSet={`/image/sidebar/${sImgName}.webp`} />
-                <img src={`/img/${sImg}`} alt={sText} loading="lazy" width={width} height={height} />
-              </picture>
-              <p>{sText}</p>
-            </a>
+            <p className="toc-bottom-heading">{sTitle}</p>
+            <div>
+              <LinkTag href={sLink} rel="nofollow noopener noreferrer" target="_blank">
+                <picture>
+                  <source srcSet={`/image/sidebar/${ImgName}.webp`} />
+                  <img src={`/img/${Img}`} alt={sText} loading="lazy" width={imgWidth} height={imgHeight} />
+                </picture>
+                <p>{sText}</p>
+              </LinkTag>
+            </div>
           </div>
-        </div>
-      </>
-    )
+        )}
+        {ad}
+      </div>
+    </>
   );
 };
 

@@ -3,15 +3,16 @@ import PropTypes from "prop-types";
 import Layout from "../components/Layout";
 import HeadData from "../components/HeadData.js";
 import { graphql, Link } from "gatsby";
-import useSiteMetaData from "../components/SiteMetadata.js";
+import SiteMetaData from "../components/SiteMetadata.js";
+import { FindAuthor, FillSpace } from "../components/SimpleFunctions.js";
 
 const CategoryPage = (props) => {
   const { nodes: posts } = props.data.allMdx;
-  const { siteURL, title: siteName } = useSiteMetaData();
+  const { siteURL, title: siteName, logoLarge } = SiteMetaData();
   const cPage = props.data.markdownRemark.frontmatter;
   const firstPost = posts[0];
   const fSlug = firstPost && firstPost.fields.slug;
-  const { title, sdate, moddate, writer } = (firstPost && firstPost.frontmatter) || {};
+  const { title, sdate, moddate, author } = (firstPost && firstPost.frontmatter) || {};
   const { base: img } = (firstPost && firstPost.frontmatter.featuredimage) || {};
 
   const articleSchema =
@@ -31,14 +32,14 @@ const CategoryPage = (props) => {
     "dateModified": "${moddate}",
     "author": {
       "@type": "Person",
-      "name": "${writer}"
+      "name": "${author}"
     },
      "publisher": {
       "@type": "Organization",
       "name": "${siteName}",
       "logo": {
         "@type": "ImageObject",
-        "url": "${siteURL}/useful-img/logo-large.png"
+        "url": "${siteURL}/img/${logoLarge.base}"
       }
     }
   }`;
@@ -46,21 +47,13 @@ const CategoryPage = (props) => {
   const { currentPage, numPages, slug } = props.pageContext;
   const isFirst = currentPage === 1;
   const isLast = currentPage === numPages;
-  const prevPage = currentPage - 1 === 1 ? `${slug}/` : `${slug}/page/${currentPage - 1}/`;
-  const nextPage = `${slug}/page/${currentPage + 1}/`;
-
-  const FillSpace = (catLength) => {
-    const space = [];
-    for (var i = 6; i > catLength; i--) {
-      space.push(<div className="category-column" key={i}></div>);
-    }
-    return space;
-  };
+  const prevPage = currentPage - 1 === 1 ? `${slug}/` : `${slug}/${currentPage - 1}/`;
+  const nextPage = `${slug}/${currentPage + 1}/`;
 
   return (
     <Layout>
       <section className="section category-post">
-        <HeadData title={cPage.seoTitle} description={cPage.seoDescription} schema={articleSchema} />
+        <HeadData title={`${cPage.seoTitle} - ${siteName}`} description={cPage.seoDescription} schema={articleSchema} slug={props.data.markdownRemark.fields.slug} />
         <div className="container content">
           <div className="category-top-section">
             <h1>{cPage.title}</h1>
@@ -69,10 +62,11 @@ const CategoryPage = (props) => {
           <div className="category-bottom-section">
             <div className="category-columns">
               {posts.map((post) => {
-                const { title, writer, date } = post.frontmatter;
+                const { title, author, date } = post.frontmatter;
                 const { base: img, name: imgName } = post.frontmatter.featuredimage;
                 const { width, height } = post.frontmatter.featuredimage.childImageSharp.original;
                 const slug = post.fields.slug;
+                const { authorName, authorLink } = FindAuthor(author);
 
                 return (
                   <div className="category-column" key={post.id}>
@@ -91,13 +85,18 @@ const CategoryPage = (props) => {
                         <Link to={`${slug}/`}>{title}</Link>
                       </div>
                       <div className="category_box_info">
-                        <Link to={`/author/${writer.toLowerCase().split(" ").join("-")}/`}>{writer}</Link> | {date}
+                        {authorName && (
+                          <>
+                            <Link to={`/author${authorLink}/`}>{authorName}</Link> |{" "}
+                          </>
+                        )}
+                        {date}
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {FillSpace(posts.length)}
+              {FillSpace(posts.length, "category-column")}
             </div>
           </div>
           <div className="pagination">
@@ -133,8 +132,8 @@ CategoryPage.propTypes = {
 export default CategoryPage;
 
 export const pageQuery = graphql`
-  query CategoryPageByTag($cat: String!, $id: String!, $skip: Int!, $limit: Int!) {
-    allMdx(sort: { order: DESC, fields: [frontmatter___date] }, filter: { frontmatter: { cat: { eq: $cat } } }, limit: $limit, skip: $skip) {
+  query CategoryPageByTag($id: String!, $category: String!, $skip: Int!, $limit: Int!) {
+    allMdx(sort: { order: DESC, fields: [frontmatter___date] }, filter: { frontmatter: { category: { eq: $category } } }, limit: $limit, skip: $skip) {
       nodes {
         excerpt(pruneLength: 400)
         id
@@ -143,9 +142,9 @@ export const pageQuery = graphql`
         }
         frontmatter {
           title
-          writer
+          author
           templateKey
-          date(formatString: "MMMM DD, YYYY")
+          date(fromNow: true)
           sdate: date(formatString: "YYYY-MM-DDTHHmmss")
           moddate(formatString: "YYYY-MM-DDTHHmmss")
           featuredimage {
@@ -162,6 +161,9 @@ export const pageQuery = graphql`
       }
     }
     markdownRemark(id: { eq: $id }) {
+      fields {
+        slug
+      }
       frontmatter {
         title
         description

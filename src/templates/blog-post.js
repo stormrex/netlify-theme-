@@ -7,27 +7,40 @@ import HeadData from "../components/HeadData.js";
 import { MDXRenderer } from "gatsby-plugin-mdx";
 import { MDXProvider } from "@mdx-js/react";
 import * as PostComps from "../components/blog/PostComponents.js";
-import Writer from "../components/Writer.js";
+import Author from "../components/Author.js";
 import LatestPosts from "../components/LatestPosts.js";
 import RatingBox from "../components/blog/RatingBox";
-import TopArrow from "../svg-icons/top-arrow.js";
-import { Disqus } from "gatsby-plugin-disqus";
+import { TopArrow } from "../components/SVG.js";
+import { DiscussionEmbed } from "disqus-react";
 import LazyLoad from "react-lazy-load";
-import useSiteMetaData from "../components/SiteMetadata.js";
+import SiteMetaData from "../components/SiteMetadata.js";
 import SidebarLatestPosts from "../components/sidebar/SidebarLatestPosts";
 import SidebarTableofContents from "../components/sidebar/SidebarTableofContents";
 import Search from "../components/SearchForm";
+import { FindCategory, CreateID } from "../components/SimpleFunctions.js";
 
 export const BlogPostTemplate = (props) => {
-  const { content, title, helmet, date, image, sidebar, faq, writer, rating, rcount, rvalue, tableofcontent, link, tocdata, beforeBody, afterBody, products, productstabletitle, productstable } = props;
+  const {
+    frontmatter: { slug, beforebody, afterbody, title, date, featuredimage, sidebar, faq, author, rating, products, table, tableofcontent, hidefeaturedimage },
+    helmet,
+    rcount,
+    rvalue,
+    link,
+    tocdata,
+    body,
+  } = props;
+  const { title: siteName, ads, disqus } = SiteMetaData();
+  const adCodes = ads?.adCodes;
   const [btT, setBtT] = useState("");
   const contentRef = useRef(null);
   const [topOffset, setTopOffset] = useState(900000000);
-  const { base: img, name: imgName } = image;
-  const { width, height } = image.childImageSharp.original;
+  const { base: img, name: imgName } = featuredimage;
+  const { width, height } = featuredimage.childImageSharp.original;
   const disqusConfig = {
     url: link,
+    title: title,
   };
+  const showAds = ads?.enableAds && !ads?.disabledPostsAds?.includes(slug);
 
   const scrollTop = () => {
     typeof window !== "undefined" &&
@@ -74,108 +87,109 @@ export const BlogPostTemplate = (props) => {
   }, []);
 
   return (
-    <section className="section blog-post">
-      {helmet}
-      <button onClick={() => scrollTop()} className={`btp ${btT}`}>
-        <TopArrow />
-      </button>
-      <div className="container content">
-        <div className="blog-columns">
-          <div className="column is-9">
-            <div className="blog-section-top">
-              <picture className="blog-top-img">
-                <source media="(min-width:768px)" srcSet={`/image/post-first/${imgName}.webp`} />
-                <source media="(min-width:100px)" srcSet={`/image/post-first/${imgName}-m.webp`} />
-                <img src={`/img/${img}`} alt={title} loading="lazy" width={width} height={height} />
-              </picture>
-              <div className="blog-section-top-inner">
-                <h1 className="title">{title}</h1>
-                <BlogInfo date={date} disqusConfig={disqusConfig} title={title} image={img} />
-                <MDXProvider components={PostComps}>
-                  <MDXRenderer>{beforeBody}</MDXRenderer>
-                </MDXProvider>
-              </div>
-            </div>
-            {tableofcontent && <PostComps.TableOfContents data={tocdata} />}
-            {productstable && !!products?.length && <PostComps.PTitle title={productstabletitle} cName="is-bold is-center" />}
-            {productstable && !!products?.length && <PostComps.ProductsTable products={products} />}
-            <div ref={contentRef} className="post-content">
-              <div className="post-text">
-                <MDXProvider components={PostComps}>
-                  <MDXRenderer>{content}</MDXRenderer>
-                </MDXProvider>
-              </div>
-              {products?.map((item, index) => (
-                <div className="product-box" key={index}>
-                  <PostComps.PTitle hlevel="3" title={item.name} />
-                  <PostComps.PImage alt={item.name} src={item.image?.base} />
-                  <PostComps.SpecTable spec={item.specs} />
-                  {item.body}
-                  <PostComps.ProsNCons pros={item.pros} cons={item.cons} />
-                  <PostComps.BButton link={item.link} />
+    <>
+      <section className="section blog-post">
+        {helmet}
+        <button onClick={() => scrollTop()} className={`btp ${btT}`}>
+          <TopArrow />
+        </button>
+        <div className="container content">
+          <div className="blog-columns">
+            <div className="column is-9">
+              <div className="blog-section-top">
+                {!hidefeaturedimage && (
+                  <picture className="blog-top-img">
+                    <source media="(min-width:768px)" srcSet={`/image/post-first/${imgName}.webp`} />
+                    <source media="(min-width:100px)" srcSet={`/image/post-first/${imgName}-m.webp`} />
+                    <img src={`/img/${img}`} alt={title} loading="lazy" width={width} height={height} />
+                  </picture>
+                )}
+                <div className="blog-section-top-inner">
+                  <h1 className="title">{title}</h1>
+                  <BlogInfo date={date} disqusConfig={disqusConfig} disqus={disqus} title={title} image={img} />
+                  <MDXProvider components={PostComps}>
+                    <MDXRenderer>{beforebody}</MDXRenderer>
+                  </MDXProvider>
                 </div>
-              ))}
-            </div>
-            <div className="blog-section-bottom">
-              <MDXProvider components={PostComps}>
-                <MDXRenderer>{afterBody}</MDXRenderer>
-              </MDXProvider>
-            </div>
-            {faq && (
-              <div className="post-faq">
-                <h2 className="faq-title">Frequently Asked Questions</h2>
-                {faq.map((item, index) => (
-                  <div className="faq-question" key={index}>
-                    <h3 className="faq-ques">{item.ques}</h3>
-                    <p className="faq-ans">{item.ans}</p>
+              </div>
+              {tableofcontent && !!tocdata.length && <PostComps.TableOfContents data={tocdata} />}
+              {showAds && <div className="ads-toc" dangerouslySetInnerHTML={{ __html: adCodes?.afterToC }} />}
+              {table?.table && table?.title && !!products?.length && <PostComps.PTitle title={table?.title} cName="is-bold is-center" />}
+              {table?.table && !!products?.length && <PostComps.ProductsTable products={products} productColumns={table.productColumns} title={table?.seoTitle} />}
+              <div ref={contentRef} className="post-content">
+                <MDXProvider components={PostComps}>
+                  <MDXRenderer>{body}</MDXRenderer>
+                </MDXProvider>
+                {!!products?.length && (
+                  <div className="products">
+                    {products?.map((item, index) => (
+                      <div className="product-box" key={index}>
+                        <PostComps.PTitle hlevel="3" title={item.name} />
+                        {item.image && <PostComps.PImage alt={item.name} src={item.image.base} link={item.link} />}
+                        {!!item.specs?.length && <PostComps.SpecTable spec={item.specs} />}
+                        <MDXProvider components={PostComps}>
+                          <MDXRenderer>{item.body}</MDXRenderer>
+                        </MDXProvider>
+                        {(!!item.pros?.length || !!item.cons?.length) && <PostComps.ProsNCons pros={item.pros} cons={item.cons} />}
+                        <PostComps.BButton link={item.link} title={item.btnText} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-            {rating && <RatingBox count={rcount} value={rvalue} />}
-            <Writer writer={writer} />
-            <div id="disqus_thread">
-              <LazyLoad offsetTop={topOffset}>
-                <Disqus config={disqusConfig} />
-              </LazyLoad>
+              <div className="blog-section-bottom">
+                <MDXProvider components={PostComps}>
+                  <MDXRenderer>{afterbody}</MDXRenderer>
+                </MDXProvider>
+              </div>
+              {!!faq?.length && (
+                <div className="post-faq">
+                  <h2 className="faq-title">Frequently Asked Questions</h2>
+                  {faq.map((item, index) => (
+                    <div className="faq-question" key={index}>
+                      <h3 className="faq-ques">{item.ques}</h3>
+                      <p className="faq-ans">{item.ans}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {rating && <RatingBox count={rcount} value={rvalue} />}
+              {showAds && <div className="ads-author" dangerouslySetInnerHTML={{ __html: adCodes?.beforeAuthor }} />}
+              <Author authorID={author} />
+              {disqus && (
+                <div id="disqus_thread">
+                  <LazyLoad offsetTop={topOffset}>
+                    <DiscussionEmbed config={disqusConfig} shortname={disqus} />
+                  </LazyLoad>
+                </div>
+              )}
+            </div>
+            <div className="column is-3">
+              <div className="sidebar">
+                <div className="site-info">
+                  <p>{siteName} is reader-supported. When you buy through links on our site, we may earn an affiliate commission.</p>
+                </div>
+                <Search />
+                <SidebarLatestPosts />
+                <SidebarTableofContents data={sidebar} ad={showAds && <div className="ads-sidebar" dangerouslySetInnerHTML={{ __html: adCodes?.sidebarSticky }} />} />
+              </div>
             </div>
           </div>
-          <div className="column is-3">
-            <div className="sidebar">
-              <div className="site-info">
-                <p>sitetitle is reader-supported. When you buy through links on our site, we may earn an affiliate commission.</p>
-              </div>
-              <Search />
-              <SidebarLatestPosts />
-              <SidebarTableofContents data={sidebar} />
-            </div>
-          </div>
+          <LatestPosts />
         </div>
-        <LatestPosts />
-      </div>
-    </section>
+      </section>
+      {showAds && <div className="ads-mobile" dangerouslySetInnerHTML={{ __html: adCodes?.stickyMobile }} />}
+    </>
   );
 };
 
-BlogPostTemplate.propTypes = {
-  content: PropTypes.node.isRequired,
-  title: PropTypes.string,
-  helmet: PropTypes.object,
-  date: PropTypes.string,
-  image: PropTypes.object,
-  sidebar: PropTypes.object,
-  faq: PropTypes.array,
-  writer: PropTypes.string,
-  enabletoc: PropTypes.bool,
-  cat: PropTypes.string,
-};
-
 const BlogPost = (props) => {
+  const { siteURL, title: siteName, logoLarge } = SiteMetaData();
   const { mdx: post } = props.data;
-  const { title, date, sdate, moddate, writer, rcount, faq, products, seoTitle, seoDescription, cat, featuredimage, sidebar, rating, tableofcontent, rvalue, beforebody, afterbody, productstable, productstabletitle } = post.frontmatter;
+  const { frontmatter } = post;
   const { base: img } = post.frontmatter.featuredimage;
-  const { siteURL, title: siteName } = useSiteMetaData();
   const path = `${siteURL}/${post.frontmatter.slug}/`;
+  const { categoryName, categoryLink } = FindCategory(frontmatter.category);
 
   const articleSchema = `{
     "@context": "https://schema.org",
@@ -184,22 +198,22 @@ const BlogPost = (props) => {
       "@type": "WebPage",
       "@id": "${path}"
     },
-    "headline": "${title}",
+    "headline": "${frontmatter.title}",
     "image": [
       "${siteURL}/img/${img}"
      ],
-    "datePublished": "${sdate}",
-    "dateModified": "${moddate}",
+    "datePublished": "${frontmatter.sdate}",
+    "dateModified": "${frontmatter.moddate}",
     "author": {
       "@type": "Person",
-      "name": "${writer}"
+      "name": "${frontmatter.author}"
     },
      "publisher": {
       "@type": "Organization",
       "name": "${siteName}",
       "logo": {
         "@type": "ImageObject",
-        "url": "${siteURL}/useful-img/logo-large.png"
+        "url": "${siteURL}/img/${logoLarge.base}"
       }
     }
   }`;
@@ -207,11 +221,11 @@ const BlogPost = (props) => {
   const ratingSchema = `{
     "@context": "https://schema.org/",
     "@type": "Product",
-    "name": "${title}",
+    "name": "${frontmatter.title}",
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "5",
-      "ratingCount": "${rcount}",
+      "ratingValue": "${frontmatter.rvalue.toString()}",
+      "ratingCount": "${frontmatter.rcount.toString()}",
       "bestRating": "5",
       "worstRating": "1"
     }
@@ -221,10 +235,8 @@ const BlogPost = (props) => {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
-      ${
-        faq &&
-        faq.map(
-          (item) => `{
+      ${frontmatter.faq?.map(
+        (item) => `{
           "@type": "Question",
           "name": "${item.ques}",
           "acceptedAnswer": {
@@ -232,8 +244,7 @@ const BlogPost = (props) => {
             "text": "${item.ans}" 
           }
         }`
-        )
-      }
+      )}
     ]
   }`;
 
@@ -241,59 +252,37 @@ const BlogPost = (props) => {
     "@context": "http://schema.org",
     "@type": "ItemList",
     "url": "${path}",
-    "name": "${title}",
+    "name": "${frontmatter.title}",
     "itemListElement": [
-      ${
-        products &&
-        products.map(
-          (item, index) => `{
+      ${frontmatter.products?.map(
+        (item, index) => `{
         "@type":"ListItem",
         "position":${index + 1},
-        "url":"${path}#${item.name
-            .replace(/[^\w ]/, "")
-            .split(" ")
-            .join("_")}",
-        "@id":"#${item.name
-          .replace(/[^\w ]/, "")
-          .split(" ")
-          .join("_")}",
+        "url":"${path}#${CreateID(item.name)}",
+        "@id":"#${CreateID(item.name)}",
         "name":"${item.name}"
       }`
-        )
-      }
+      )}
     ]
   }`;
 
   return (
-    <Layout type="post" title={title} titleParent={cat} link={`/${cat.toLowerCase().split(" ").join("-")}/`}>
+    <Layout type="post" title={frontmatter.title} titleParent={categoryName} link={`${categoryLink}/`}>
       <BlogPostTemplate
-        content={post.body}
         helmet={
-          <HeadData title={seoTitle} description={seoDescription} image={img}>
-            <script type="application/ld+json">{articleSchema}</script>
-            {rating && <script type="application/ld+json">{ratingSchema}</script>}
-            {products && <script type="application/ld+json">{productSchema}</script>}
-            {faq && <script type="application/ld+json">{faqSchema}</script>}
+          <HeadData title={frontmatter.seoTitle} description={frontmatter.seoDescription} image={img} slug={post.fields.slug}>
+            {frontmatter.author && <script type="application/ld+json">{articleSchema}</script>}
+            {frontmatter.rating && <script type="application/ld+json">{ratingSchema}</script>}
+            {frontmatter.products?.length && <script type="application/ld+json">{productSchema}</script>}
+            {frontmatter.faq?.length && <script type="application/ld+json">{faqSchema}</script>}
           </HeadData>
         }
-        cat={cat}
-        title={title}
-        date={date}
-        image={featuredimage}
-        sidebar={sidebar}
-        faq={faq}
-        writer={writer}
-        rvalue={rvalue ? rvalue : 5}
-        rcount={rcount || 0}
-        rating={rating}
-        tableofcontent={tableofcontent}
+        body={post.body}
+        frontmatter={frontmatter}
+        rvalue={frontmatter.rvalue ? frontmatter.rvalue : 5}
+        rcount={frontmatter.rcount || 0}
         link={path}
         tocdata={props.pageContext.toc}
-        beforeBody={beforebody}
-        afterBody={afterbody}
-        products={products}
-        productstabletitle={productstabletitle}
-        productstable={productstable}
       />
     </Layout>
   );
@@ -312,6 +301,9 @@ export const pageQuery = graphql`
     mdx(id: { eq: $id }) {
       id
       body
+      fields {
+        slug
+      }
       frontmatter {
         title
         slug
@@ -327,19 +319,25 @@ export const pageQuery = graphql`
             }
           }
         }
-        date(formatString: "MMMM DD, YYYY")
+        hidefeaturedimage
+        date(fromNow: true)
         sdate: date(formatString: "YYYY-MM-DDTHHmmss")
         moddate(formatString: "YYYY-MM-DDTHHmmss")
         tableofcontent
-        writer
+        author
         rating
         rcount
         rvalue
         beforebody
-        productstable
-        productstabletitle
+        table {
+          table
+          title
+          seoTitle
+          productColumns
+        }
         products {
           name
+          seoName
           link
           image {
             name
@@ -358,9 +356,10 @@ export const pageQuery = graphql`
             name
             value
           }
+          btnText
         }
         afterbody
-        cat
+        category
         sidebar {
           stitle
           atext

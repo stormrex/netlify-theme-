@@ -11,7 +11,7 @@ const BreadCrumbs = ({ title, link, titleParent }) => {
           </Link>
           »
         </div>
-        {link ? (
+        {titleParent && link ? (
           <div className="bread-item">
             <Link to={link}>
               <span>{titleParent}</span>

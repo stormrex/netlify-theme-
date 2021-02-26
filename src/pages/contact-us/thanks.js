@@ -1,15 +1,15 @@
 import React from "react";
 import Layout from "../../components/Layout";
 import HeadData from "../../components/HeadData.js";
-import useSiteMetaData from "../../components/SiteMetadata.js";
+import SiteMetaData from "../../components/SiteMetadata.js";
 
 export default () => {
-  const { title } = useSiteMetaData();
+  const { title: siteName } = SiteMetaData();
 
   return (
     <Layout title="Thanks" link="/contact-us/" titleParent="Contact Us">
-      <section className="section">
-        <HeadData title={`Thanks - ${title}`} description="Thanks for contacting us." index={false} />
+      <section className="section default-page">
+        <HeadData title={`Thanks - ${siteName}`} description="Thanks for contacting us." index={false} slug={"/contact-us/thanks"} />
         <div className="container">
           <div className="content">
             <h1>Thank you!</h1>

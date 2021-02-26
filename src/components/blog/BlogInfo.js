@@ -1,14 +1,10 @@
 import React from "react";
-import Calendar from "../../svg-icons/calendar.js";
-import CommentDots from "../../svg-icons/comment-dots.js";
-import Facebook from "../../svg-icons/facebook.js";
-import Twitter from "../../svg-icons/twitter.js";
-import Pinterest from "../../svg-icons/pinterest.js";
-import useSiteMetadata from "../SiteMetadata.js";
-import { CommentCount } from "gatsby-plugin-disqus";
+import { Calendar, CommentDots, Facebook, Twitter, Pinterest } from "../SVG.js";
+import SiteMetaData from "../SiteMetadata.js";
+import { CommentCount } from "disqus-react";
 
 const BlogInfo = (props) => {
-  const { siteURL } = useSiteMetadata();
+  const { siteURL } = SiteMetaData();
 
   return (
     <div className="post-top-section">
@@ -17,14 +13,18 @@ const BlogInfo = (props) => {
           <Calendar />
           <p>{props.date}</p>
         </div>
-        <div className="post-info-item">
-          <CommentDots />
-          <p>
-            <a href="#disqus_thread">
-              <CommentCount config={props.disqusConfig} placeholder={"..."} />
-            </a>
-          </p>
-        </div>
+        {props.disqus && (
+          <div className="post-info-item">
+            <CommentDots />
+            <p>
+              <a href="#disqus_thread">
+                <CommentCount config={props.disqusConfig} shortname={props.disqus}>
+                  Comments
+                </CommentCount>
+              </a>
+            </p>
+          </div>
+        )}
       </div>
       <div className="post-social-section">
         <a target="_blank" rel="noreferrer" data-original-title="Share on Facebook" className="btn btn-facebook" href={`https://www.facebook.com/sharer.php?u=${typeof window !== "undefined" && window.location.href}`}>

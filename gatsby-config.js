@@ -1,10 +1,9 @@
 const path = require("path");
-const siteURL = "https://www.sitetitle.com";
+require("dotenv").config();
+const siteURL = process.env.URL;
 
 module.exports = {
   siteMetadata: {
-    title: "Site title here",
-    description: "Site description here",
     siteURL: siteURL,
     siteUrl: siteURL,
   },
@@ -30,12 +29,6 @@ module.exports = {
       options: {
         path: `${__dirname}/src/posts`,
         name: "posts",
-      },
-    },
-    {
-      resolve: `gatsby-plugin-disqus`,
-      options: {
-        shortname: `sitetitle-com`,
       },
     },
     "gatsby-plugin-sharp",
@@ -91,12 +84,6 @@ module.exports = {
         customizeWebpackConfig: (config) => ((config.node.fs = "empty"), (config.node.child_process = "empty")),
       },
     },
-    {
-      resolve: `gatsby-plugin-canonical-urls`,
-      options: {
-        siteUrl: siteURL,
-      },
-    },
     `gatsby-plugin-remove-fingerprints`,
     {
       resolve: `gatsby-plugin-sitemap`,
@@ -111,7 +98,7 @@ module.exports = {
       options: {
         content: [path.join(process.cwd(), "src/**/!(*.d).{js,mdx,md}")],
         develop: true, // Activates purging in npm run develop
-        purgeOnly: ["/main.css"], // applies purging only on the bulma css file
+        purgeOnly: ["css/"], // applies purging only on the bulma css file
       },
     }, // must be after other CSS plugins
     // make sure to keep it last in the array

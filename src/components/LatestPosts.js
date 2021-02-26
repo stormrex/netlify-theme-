@@ -1,7 +1,8 @@
 import React from "react";
 import { useStaticQuery, graphql, Link } from "gatsby";
+import { FillSpace, FindCategory } from "../components/SimpleFunctions.js";
 
-const LatestPosts = (props) => {
+const LatestPosts = () => {
   const lp = useStaticQuery(graphql`
     {
       allMdx(sort: { order: DESC, fields: [frontmatter___date] }, limit: 3) {
@@ -12,7 +13,7 @@ const LatestPosts = (props) => {
           }
           frontmatter {
             title
-            cat
+            category
             featuredimage {
               name
               base
@@ -31,24 +32,17 @@ const LatestPosts = (props) => {
 
   const { nodes: posts } = lp.allMdx;
 
-  const FillSpace = (catLength) => {
-    const space = [];
-    for (var i = 3; i > catLength; i--) {
-      space.push(<div className="index-column" key={i}></div>);
-    }
-    return space;
-  };
-
   return (
-    <div className="cat-section latest-posts">
+    <div className="category-section latest-posts">
       <p className="lp-title">Latest Posts</p>
       <div className="index-columns">
         {posts.map((post) => {
           const id = post.id;
           const slug = post.fields.slug;
-          const { title, cat: category } = post.frontmatter;
+          const { title, category } = post.frontmatter;
           const { name: imgName, base: img } = post.frontmatter.featuredimage;
           const { width, height } = post.frontmatter.featuredimage.childImageSharp.original;
+          const { categoryName, categoryLink } = FindCategory(category);
 
           return (
             <div className="index-column" key={id}>
@@ -60,16 +54,18 @@ const LatestPosts = (props) => {
                   </picture>
                 </Link>
               </div>
-              <div className="index-box-cat">
-                <Link to={`/${category.toLowerCase().split(" ").join("-")}/`}>{category}</Link>
-              </div>
+              {categoryLink && (
+                <div className="index-box-category">
+                  <Link to={`${categoryLink}/`}>{categoryName}</Link>
+                </div>
+              )}
               <div className="index-box-title">
                 <Link to={`${slug}/`}>{title}</Link>
               </div>
             </div>
           );
         })}
-        {FillSpace(posts.length)}
+        {FillSpace(posts.length, "index-column", 3)}
       </div>
     </div>
   );
